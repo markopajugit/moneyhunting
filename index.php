@@ -1,3 +1,3 @@
 <?php echo "moneyhunting-php";
 
-require "scraper.php";
+require "sender.php";
