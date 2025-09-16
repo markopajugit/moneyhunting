@@ -2,63 +2,64 @@
 // Set a timezone to ensure correct logging timestamps
 date_default_timezone_set('Europe/Tallinn');
 
+// Log the start of the PHP script
 echo "[" . date('Y-m-d H:i:s') . "] Sender script starting...\n";
 require 'vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// --- TEMPORARILY MOCK DATA INSTEAD OF EXECUTING NODE.JS ---
-// The previous line was: $output = shell_exec('node ' . __DIR__ . '/scraper.js 2>&1');
-$listings = [
-    [
-        'title' => 'Mock Listing 1',
-        'link' => 'https://www.kv.ee/stuudio-314-m-kesklinnas-2-korrus-panoraamaknad-va-3754915.html'
-    ],
-    [
-        'title' => 'Mock Listing 2',
-        'link' => 'www.kv.ee/stiilses-miljoovaartuslikus-puithoones-vaikeste-pu-3783708.html'
-    ]
-];
-// We will use this hardcoded data to test the mail sending logic below.
+// --- EXECUTE THE NODE.JS SCRAPER ---
+echo "[" . date('Y-m-d H:i:s') . "] Executing Node.js scraper...\n";
+$output = shell_exec('node ' . __DIR__ . '/scraper.js 2>&1');
+echo "[" . date('Y-m-d H:i:s') . "] Node.js script output:\n";
+echo $output;
 
-// --- PROCEED WITH EMAIL SENDING ---
-// This part of the code remains the same, but now it uses the mock data
-if (!empty($listings)) {
-    echo "[" . date('Y-m-d H:i:s') . "] Found " . count($listings) . " mock listings. Preparing email.\n";
-    $mail = new PHPMailer(true);
+// --- CHECK FOR NEW LISTINGS AND SEND EMAIL ---
+$newListingsFile = __DIR__ . '/new_listings.json';
 
-    try {
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host = 'smtp.zone.eu'; // or your SMTP host
-        $mail->SMTPAuth = true;
-        $mail->Username = 'info@hardcoded.ee';
-        $mail->Password = 'blasonsimlen'; // Use an App Password, NOT your main password
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
-        echo "[" . date('Y-m-d H:i:s') . "] SMTP settings configured.\n";
+if (file_exists($newListingsFile) && filesize($newListingsFile) > 2) {
+    echo "[" . date('Y-m-d H:i:s') . "] New listings file exists and is not empty. Proceeding to send email.\n";
+    $listings = json_decode(file_get_contents($newListingsFile), true);
 
-        // Recipients
-        $mail->setFrom('your_email@gmail.com', 'KV.ee Scraper');
-        $mail->addAddress('recipient_email@example.com');
+    if (!empty($listings)) {
+        echo "[" . date('Y-m-d H:i:s') . "] Found " . count($listings) . " new listings. Preparing email.\n";
+        $mail = new PHPMailer(true);
 
-        // Content
-        $mail->isHTML(false);
-        $mail->Subject = 'New listings from KV.ee!';
+        try {
+            // Server settings provided by the user
+            $mail->Mailer = "smtp";
+            $mail->Host = "localhost";
+            $mail->Port = "25";
+            $mail->SMTPSecure = 'none';
+            $mail->SMTPAutoTLS = false;
+            $mail->SMTPAuth = false;
 
-        $body = "New listings have been added to KV.ee:\n\n";
-        foreach ($listings as $item) {
-            $body .= "Title: " . $item['title'] . "\n";
-            $body .= "Link: " . $item['link'] . "\n\n";
+            // It is still a good practice to set a 'From' address, even without authentication.
+            $mail->setFrom('kv@hardcoded.com', 'KV.ee Scraper');
+            $mail->addAddress('markopaju92@gmail.com');
+            echo "[" . date('Y-m-d H:i:s') . "] Recipient email set.\n";
+
+            // Content
+            $mail->isHTML(false);
+            $mail->Subject = 'New listings from KV.ee!';
+
+            $body = "New listings have been added to KV.ee:\n\n";
+            foreach ($listings as $item) {
+                $body .= "Title: " . $item['title'] . "\n";
+                $body .= "Link: " . $item['link'] . "\n\n";
+            }
+            $mail->Body = $body;
+
+            $mail->send();
+            echo "[" . date('Y-m-d H:i:s') . "] Email sent successfully!\n";
+        } catch (Exception $e) {
+            echo "[" . date('Y-m-d H:i:s') . "] ERROR: Message could not be sent. Mailer Error: {$mail->ErrorInfo}\n";
         }
-        $mail->Body = $body;
-
-        $mail->send();
-        echo "[" . date('Y-m-d H:i:s') . "] Email sent successfully!\n";
-    } catch (Exception $e) {
-        echo "[" . date('Y-m-d H:i:s') . "] ERROR: Message could not be sent. Mailer Error: {$mail->ErrorInfo}\n";
     }
+
+    // You can uncomment this to delete the temporary file after each successful run
+    // unlink($newListingsFile);
 } else {
     echo "[" . date('Y-m-d H:i:s') . "] No new listings found. No email sent.\n";
 }
