@@ -5,18 +5,18 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 // --- EXECUTE THE NODE.JS SCRAPER ---
-// This command runs the Node.js script and returns any output.
-// The `shell_exec` function will hang until the Node.js script finishes.
 $output = shell_exec('node ' . __DIR__ . '/scraper.js');
-echo $output; // You can log the output for debugging
+echo $output;
 
 // --- CHECK FOR NEW LISTINGS AND SEND EMAIL ---
-$newListingsFile = __DIR__ . '/new_listings.json';
+$newListingsFile = __DIR__ . '/new_listings.txt';
 
-if (file_exists($newListingsFile) && filesize($newListingsFile) > 2) {
-    $listings = json_decode(file_get_contents($newListingsFile), true);
+// Check if the file is not empty
+if (file_exists($newListingsFile) && filesize($newListingsFile) > 0) {
+    // Read the file line by line
+    $newLinks = file($newListingsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
-    if (!empty($listings)) {
+    if (!empty($newLinks)) {
         $mail = new PHPMailer(true);
 
         try {
@@ -30,17 +30,16 @@ if (file_exists($newListingsFile) && filesize($newListingsFile) > 2) {
             $mail->Port = 587;
 
             // Recipients
-            $mail->setFrom('info@hardcoded.ee', 'KV.ee Scraper');
-            $mail->addAddress('markopaju92@gmail.com');
+            $mail->setFrom('your_email@gmail.com', 'KV.ee Scraper');
+            $mail->addAddress('recipient_email@example.com');
 
             // Content
-            $mail->isHTML(false); // Set to true if you want to use HTML
+            $mail->isHTML(false);
             $mail->Subject = 'New listings from KV.ee!';
 
             $body = "New listings have been added to KV.ee:\n\n";
-            foreach ($listings as $item) {
-                $body .= "Title: " . $item['title'] . "\n";
-                $body .= "Link: " . $item['link'] . "\n\n";
+            foreach ($newLinks as $link) {
+                $body .= "- " . $link . "\n";
             }
             $mail->Body = $body;
 
@@ -52,7 +51,7 @@ if (file_exists($newListingsFile) && filesize($newListingsFile) > 2) {
     }
 
     // --- OPTIONAL: CLEAN UP THE TEMP FILE ---
-    //unlink($newListingsFile);
+    // unlink($newListingsFile);
 } else {
     echo "No new listings found." . "\n";
 }
