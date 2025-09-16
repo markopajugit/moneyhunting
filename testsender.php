@@ -13,11 +13,11 @@ use PHPMailer\PHPMailer\Exception;
 $listings = [
     [
         'title' => 'Mock Listing 1',
-        'link' => 'https://www.kv.ee/mock-listing-1'
+        'link' => 'https://www.kv.ee/stuudio-314-m-kesklinnas-2-korrus-panoraamaknad-va-3754915.html'
     ],
     [
         'title' => 'Mock Listing 2',
-        'link' => 'https://www.kv.ee/mock-listing-2'
+        'link' => 'www.kv.ee/stiilses-miljoovaartuslikus-puithoones-vaikeste-pu-3783708.html'
     ]
 ];
 // We will use this hardcoded data to test the mail sending logic below.
