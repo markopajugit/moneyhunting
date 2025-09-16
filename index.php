@@ -1,1 +1,1 @@
-<?php echo "moneyhunting";
+<?php echo "moneyhunting-php";
